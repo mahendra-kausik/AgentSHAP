@@ -42,7 +42,6 @@ export OPENAI_API_KEY=your-key-here
 | exp3 | Scalability | `exp3_scalability.py` |
 | exp4 | Irrelevant tool injection | `exp4_irrelevant_injection.py` |
 | exp5 | Cross-domain attribution | `exp5_cross_domain.py` |
-| exp6 | Model comparison | `exp6_model_comparison.py` |
 
 ## Running experiments
 

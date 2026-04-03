@@ -40,11 +40,6 @@ echo ""
 echo ">>> Experiment 5: Cross-Domain Query Test"
 python exp5_cross_domain.py
 
-# Experiment 6: Model Comparison
-echo ""
-echo ">>> Experiment 6: Model Comparison (GPT-4o-mini vs GPT-4o)"
-python exp6_model_comparison.py
-
 echo ""
 echo "=========================================="
 echo "All experiments complete!"
