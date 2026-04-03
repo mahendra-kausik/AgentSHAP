@@ -1,10 +1,14 @@
 #!/bin/bash
 # Run all AgentSHAP experiments
 
-# Load API key
-source "$(dirname "$0")/.env"
+set -euo pipefail
 
-cd "$(dirname "$0")/.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Load API key
+source "$SCRIPT_DIR/.env"
+
+cd "$SCRIPT_DIR"
 
 echo "=========================================="
 echo "Running ALL AgentSHAP Experiments"
@@ -14,38 +18,38 @@ echo "=========================================="
 # Experiment 1: Consistency
 echo ""
 echo ">>> Experiment 1: Consistency Test"
-python experiments/exp1_consistency.py
+python exp1_consistency.py
 
 # Experiment 2: Faithfulness
 echo ""
 echo ">>> Experiment 2: Faithfulness Test"
-python experiments/exp2_faithfulness.py
+python exp2_faithfulness.py
 
 # Experiment 3: Scalability
 echo ""
 echo ">>> Experiment 3: Scalability Test"
-python experiments/exp3_scalability.py
+python exp3_scalability.py
 
 # Experiment 4: Irrelevant Tool Injection
 echo ""
 echo ">>> Experiment 4: Irrelevant Tool Injection Test"
-python experiments/exp4_irrelevant_injection.py
+python exp4_irrelevant_injection.py
 
 # Experiment 5: Cross-Domain Queries
 echo ""
 echo ">>> Experiment 5: Cross-Domain Query Test"
-python experiments/exp5_cross_domain.py
+python exp5_cross_domain.py
 
 # Experiment 6: Model Comparison
 echo ""
 echo ">>> Experiment 6: Model Comparison (GPT-4o-mini vs GPT-4o)"
-python experiments/exp6_model_comparison.py
+python exp6_model_comparison.py
 
 echo ""
 echo "=========================================="
 echo "All experiments complete!"
-echo "Results saved to: experiments/results/"
+echo "Results saved to: $SCRIPT_DIR/results/"
 echo "=========================================="
 echo ""
 echo "Files generated:"
-ls -la experiments/results/
+ls -la "$SCRIPT_DIR/results/"
