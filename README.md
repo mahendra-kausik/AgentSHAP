@@ -183,7 +183,7 @@ from token_shap.base import HuggingFaceEmbeddings
 
 # Initialize tracking and VLM
 tracker = SAM3VideoSegmentationModel(model_name="facebook/sam3", device="cuda")
-vlm = GeminiVideoModel(model_name="gemini-2.0-flash", api_key="...")
+vlm = GeminiVideoModel(model_name="gemini-2.5-flash", api_key="...")
 manipulator = VideoBlurManipulator(blur_radius=51)
 embeddings = HuggingFaceEmbeddings()
 

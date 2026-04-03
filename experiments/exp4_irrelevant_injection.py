@@ -38,9 +38,12 @@ tools_mod = load_module('token_shap.tools', PROJECT_DIR / 'token_shap' / 'tools.
 agent_shap_mod = load_module('token_shap.agent_shap', PROJECT_DIR / 'token_shap' / 'agent_shap.py')
 
 OpenAIModel = base.OpenAIModel
-OpenAIEmbeddings = base.OpenAIEmbeddings
+HuggingFaceEmbeddings = base.HuggingFaceEmbeddings
 Tool = tools_mod.Tool
 AgentSHAP = agent_shap_mod.AgentSHAP
+
+GEMINI_MODEL_NAME = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+GEMINI_BASE_URL = os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
 
 # Import API-Bank tools
 from apis.calculator import Calculator
@@ -159,8 +162,8 @@ def run_injection_experiment(api_key, sampling_ratio=0.5):
 
     Similar to TokenSHAP's random word injection experiment.
     """
-    model = OpenAIModel(model_name="gpt-4o-mini", api_key=api_key)
-    vectorizer = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large")
+    model = OpenAIModel(model_name=GEMINI_MODEL_NAME, api_key=api_key, base_url=GEMINI_BASE_URL)
+    vectorizer = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
     relevant_tools = create_relevant_tools()
     irrelevant_tools = create_irrelevant_tools()
@@ -380,9 +383,9 @@ def save_results_to_csv(results, output_dir):
 
 
 if __name__ == "__main__":
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("Please set OPENAI_API_KEY environment variable")
+        print("Please set GEMINI_API_KEY environment variable")
         sys.exit(1)
 
     results_dir = EXPERIMENT_DIR / "results"

@@ -12,7 +12,7 @@ cd "$SCRIPT_DIR"
 
 echo "=========================================="
 echo "Running ALL AgentSHAP Experiments"
-echo "Using OpenAI Embeddings (text-embedding-3-large)"
+echo "Using Gemini API + HuggingFace embeddings (all-MiniLM-L6-v2)"
 echo "=========================================="
 
 # Experiment 1: Consistency

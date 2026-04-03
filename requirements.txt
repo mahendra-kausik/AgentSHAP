@@ -8,6 +8,7 @@ tqdm>=4.50
 # PyYAML>=5.3
 # requests>=2.24
 sentence-transformers>=3.4.0
+python-dotenv
 openai>=2.15.0
 # opencv-python>=4.11.0
 # torchvision>=0.23.0

@@ -7,7 +7,7 @@ This folder contains experiments for evaluating AgentSHAP on the API-Bank benchm
 ### 1. Install dependencies
 
 ```bash
-pip install openai numpy pandas matplotlib
+pip install openai sentence-transformers numpy pandas matplotlib
 ```
 
 ### 2. Get API-Bank benchmark
@@ -19,18 +19,25 @@ cd experiments
 git clone https://github.com/AlibabaResearch/DAMO-ConvAI.git
 ```
 
-### 3. Set OpenAI API key
+### 3. Set Gemini API key
 
 Create a `.env` file:
 
 ```bash
-echo "OPENAI_API_KEY=your-key-here" > .env
+echo "GEMINI_API_KEY=your-key-here" > .env
 ```
 
 Or export directly:
 
 ```bash
-export OPENAI_API_KEY=your-key-here
+export GEMINI_API_KEY=your-key-here
+```
+
+Optional (defaults shown):
+
+```bash
+echo "GEMINI_MODEL_NAME=gemini-2.5-flash" >> .env
+echo "GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/" >> .env
 ```
 
 ## Experiments

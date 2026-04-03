@@ -277,7 +277,7 @@ class OpenAIModel(ModelBase):
 
     def __init__(self, model_name: str, api_key: str, base_url: Optional[str] = None):
         """
-        :param model_name: Name of the model (e.g., "gpt-4-turbo", "gemini-2.0-flash", "claude-3").
+        :param model_name: Name of the model (e.g., "gpt-4-turbo", "gemini-2.5-flash", "claude-3").
         :param api_key: API key for the respective provider.
         :param base_url: Optional base URL (e.g., Gemini, Claude, OpenAI custom endpoint).
         """

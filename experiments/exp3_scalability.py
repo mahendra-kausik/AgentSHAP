@@ -37,9 +37,12 @@ tools_mod = load_module('token_shap.tools', PROJECT_DIR / 'token_shap' / 'tools.
 agent_shap_mod = load_module('token_shap.agent_shap', PROJECT_DIR / 'token_shap' / 'agent_shap.py')
 
 OpenAIModel = base.OpenAIModel
-OpenAIEmbeddings = base.OpenAIEmbeddings
+HuggingFaceEmbeddings = base.HuggingFaceEmbeddings
 Tool = tools_mod.Tool
 AgentSHAP = agent_shap_mod.AgentSHAP
+
+GEMINI_MODEL_NAME = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+GEMINI_BASE_URL = os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
 
 # Import ALL API-Bank tools
 from apis.calculator import Calculator
@@ -144,8 +147,8 @@ def run_scalability_experiment(api_key, tool_counts=[2, 3, 4, 5, 6, 8, 10], n_ru
     Test AgentSHAP with increasing number of tools.
     Measure runtime and number of API calls.
     """
-    model = OpenAIModel(model_name="gpt-4o-mini", api_key=api_key)
-    vectorizer = OpenAIEmbeddings(api_key=api_key, model="text-embedding-3-large")
+    model = OpenAIModel(model_name=GEMINI_MODEL_NAME, api_key=api_key, base_url=GEMINI_BASE_URL)
+    vectorizer = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     all_tools = create_tool_pool()
 
     # Use a prompt that works with any tool subset
@@ -307,9 +310,9 @@ def save_results_to_csv(results, output_dir):
 
 
 if __name__ == "__main__":
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("Please set OPENAI_API_KEY environment variable")
+        print("Please set GEMINI_API_KEY environment variable")
         sys.exit(1)
 
     results_dir = EXPERIMENT_DIR / "results"
