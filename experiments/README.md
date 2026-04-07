@@ -10,6 +10,13 @@ This folder contains experiments for evaluating AgentSHAP on the API-Bank benchm
 pip install openai sentence-transformers numpy pandas matplotlib
 ```
 
+### 1.5 Start Ollama (default provider)
+
+```bash
+ollama pull qwen2.5:7b-instruct
+ollama serve
+```
+
 ### 2. Get API-Bank benchmark
 
 Clone the DAMO-ConvAI API-Bank repository:
@@ -19,25 +26,23 @@ cd experiments
 git clone https://github.com/AlibabaResearch/DAMO-ConvAI.git
 ```
 
-### 3. Set Gemini API key
+### 3. Configure provider via `.env`
 
 Create a `.env` file:
 
 ```bash
-echo "GEMINI_API_KEY=your-key-here" > .env
+echo "MODEL_PROVIDER=ollama" > .env
+echo "OLLAMA_MODEL_NAME=qwen2.5:7b-instruct" >> .env
+echo "OLLAMA_API_URL=http://localhost:11434" >> .env
 ```
 
-Or export directly:
+Optional: use an OpenAI-compatible cloud endpoint instead:
 
 ```bash
-export GEMINI_API_KEY=your-key-here
-```
-
-Optional (defaults shown):
-
-```bash
-echo "GEMINI_MODEL_NAME=gemini-2.5-flash" >> .env
-echo "GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/" >> .env
+echo "MODEL_PROVIDER=openai_compat" >> .env
+echo "OPENAI_COMPAT_API_KEY=your-key-here" >> .env
+echo "OPENAI_COMPAT_MODEL_NAME=gemini-2.5-flash" >> .env
+echo "OPENAI_COMPAT_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/" >> .env
 ```
 
 ## Experiments

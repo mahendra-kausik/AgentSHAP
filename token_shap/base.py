@@ -6,6 +6,7 @@ import pandas as pd
 from pathlib import Path
 import os
 import json
+import importlib
 from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 import random
@@ -17,7 +18,6 @@ import base64
 from io import BytesIO
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from openai import OpenAI
 
 def default_output_handler(message: str) -> None:
     """Prints messages without newline."""
@@ -64,7 +64,7 @@ def interact_with_ollama(
     ValueError: If necessary parameters are not correctly provided or API URL is missing.
     """
     if not api_url:
-        api_url = getenv('API_URL')
+        api_url = os.getenv('API_URL')
         if not api_url:
             raise ValueError('API_URL is not set. Provide it via the api_url variable or as an environment variable.')
 
@@ -172,10 +172,11 @@ class HuggingFaceEmbeddings(TextVectorizer):
         
     def _initialize_model(self):
         try:
-            from sentence_transformers import SentenceTransformer
+            sentence_transformers_module = importlib.import_module("sentence_transformers")
+            SentenceTransformer = getattr(sentence_transformers_module, "SentenceTransformer")
             # Load model - SentenceTransformer handles all the complexity
             self.model = SentenceTransformer(self.model_name, device=self.device)
-        except ImportError:
+        except Exception:
             raise ImportError("sentence-transformers package not installed. Please install with 'pip install sentence-transformers'")
             
     def vectorize(self, texts: List[str]) -> np.ndarray:
@@ -208,9 +209,10 @@ class OpenAIEmbeddings(TextVectorizer):
         
     def _initialize_client(self):
         try:
-            from openai import OpenAI
+            openai_module = importlib.import_module("openai")
+            OpenAI = getattr(openai_module, "OpenAI")
             self.client = OpenAI(api_key=self.api_key)
-        except ImportError:
+        except Exception:
             raise ImportError("OpenAI package not installed. Please install with 'pip install openai'")
             
     def vectorize(self, texts: List[str]) -> np.ndarray:
@@ -267,11 +269,6 @@ class TfidfTextVectorizer(TextVectorizer):
             base_vector.reshape(1, -1), comparison_vectors
         ).flatten()
 
-import base64
-from io import BytesIO
-from typing import Optional, Union
-from openai import OpenAI
-
 class OpenAIModel(ModelBase):
     """Generic AI Model API wrapper supporting multiple providers"""
 
@@ -288,8 +285,10 @@ class OpenAIModel(ModelBase):
     def _initialize_client(self):
         """Initialize the API client with the given base_url."""
         try:
+            openai_module = importlib.import_module("openai")
+            OpenAI = getattr(openai_module, "OpenAI")
             self.client = OpenAI(api_key=self.api_key, base_url=self.base_url) if self.base_url else OpenAI(api_key=self.api_key)
-        except ImportError:
+        except Exception:
             raise ImportError("OpenAI package not installed. Please install with 'pip install openai'")
 
     def generate(self, prompt: str, image_path: Optional[Union[str, BytesIO]] = None) -> str:
@@ -452,6 +451,88 @@ class OllamaModel(ModelBase):
         )
         return text_response
 
+    def generate_with_tools(self,
+                           prompt: str,
+                           tools: List[Dict],
+                           tool_executor: Optional[Callable[[str, Dict], str]] = None,
+                           max_iterations: int = 10) -> Tuple[str, Dict[str, int]]:
+        """Generate response with tool calling support using Ollama /api/chat."""
+        tool_usage: Dict[str, int] = {}
+
+        if not tools:
+            return self.generate(prompt), tool_usage
+
+        api_url = (self.api_url or "").rstrip("/")
+        if not api_url:
+            raise ValueError("api_url is required for OllamaModel")
+
+        messages: List[Dict[str, Any]] = [{"role": "user", "content": prompt}]
+        endpoint = f"{api_url}/api/chat"
+
+        for _ in range(max_iterations):
+            try:
+                payload = {
+                    "model": self.model_name,
+                    "messages": messages,
+                    "tools": tools,
+                    "stream": False,
+                }
+                response = requests.post(endpoint, json=payload, timeout=120)
+                response.raise_for_status()
+                body = response.json()
+
+                message = body.get("message", {})
+                content = message.get("content", "") or ""
+                tool_calls = message.get("tool_calls") or []
+
+                assistant_message: Dict[str, Any] = {
+                    "role": "assistant",
+                    "content": content,
+                }
+                if tool_calls:
+                    assistant_message["tool_calls"] = tool_calls
+                messages.append(assistant_message)
+
+                if not tool_calls:
+                    return content, tool_usage
+
+                for tool_call in tool_calls:
+                    function = tool_call.get("function", {})
+                    func_name = function.get("name", "")
+                    func_args = function.get("arguments", {})
+
+                    if isinstance(func_args, str):
+                        try:
+                            func_args = json.loads(func_args)
+                        except json.JSONDecodeError:
+                            func_args = {}
+                    elif not isinstance(func_args, dict):
+                        func_args = {}
+
+                    if func_name:
+                        tool_usage[func_name] = tool_usage.get(func_name, 0) + 1
+
+                    if tool_executor and func_name:
+                        try:
+                            result = tool_executor(func_name, func_args)
+                        except Exception as e:
+                            result = f"Error executing {func_name}: {str(e)}"
+                    else:
+                        result = f"Tool {func_name or '[unknown]'} called but no executor provided"
+
+                    tool_message: Dict[str, Any] = {
+                        "role": "tool",
+                        "content": result,
+                    }
+                    if func_name:
+                        tool_message["name"] = func_name
+                    messages.append(tool_message)
+
+            except Exception as e:
+                return f"Error in tool calling: {str(e)}", tool_usage
+
+        return "Max iterations reached without final response", tool_usage
+
 class LocalModel(ModelBase):
     """Local model implementation supporting both text and vision using HuggingFace models"""
     
@@ -490,8 +571,10 @@ class LocalModel(ModelBase):
     def _initialize_model(self):
         """Initialize the appropriate model and tokenizer/processor"""
         try:
+            transformers_module = importlib.import_module("transformers")
             if self.model_type == "text":
-                from transformers import AutoTokenizer, AutoModelForCausalLM
+                AutoTokenizer = getattr(transformers_module, "AutoTokenizer")
+                AutoModelForCausalLM = getattr(transformers_module, "AutoModelForCausalLM")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
                 self.model = AutoModelForCausalLM.from_pretrained(
                     self.model_name,
@@ -500,15 +583,13 @@ class LocalModel(ModelBase):
                     **self.model_kwargs
                 )
             elif self.model_type == "vision":
-                from transformers import AutoProcessor
+                AutoProcessor = getattr(transformers_module, "AutoProcessor")
                 # Import the specific model class based on model_name
                 # This is just an example - adjust based on your needs
                 if "llama" in self.model_name.lower():
-                    from transformers import LlamaForConditionalGeneration
-                    model_class = LlamaForConditionalGeneration
+                    model_class = getattr(transformers_module, "LlamaForConditionalGeneration")
                 else:
-                    from transformers import AutoModelForCausalLM
-                    model_class = AutoModelForCausalLM
+                    model_class = getattr(transformers_module, "AutoModelForCausalLM")
                     
                 self.processor = AutoProcessor.from_pretrained(self.model_name)
                 self.model = model_class.from_pretrained(

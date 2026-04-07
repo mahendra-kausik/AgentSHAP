@@ -13,6 +13,7 @@ Uses real tools and prompts from API-Bank benchmark.
 import sys
 import os
 import json
+import importlib
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -39,31 +40,47 @@ tools_mod = load_module('token_shap.tools', PROJECT_DIR / 'token_shap' / 'tools.
 agent_shap_mod = load_module('token_shap.agent_shap', PROJECT_DIR / 'token_shap' / 'agent_shap.py')
 
 OpenAIModel = base.OpenAIModel
+OllamaModel = base.OllamaModel
 HuggingFaceEmbeddings = base.HuggingFaceEmbeddings
 Tool = tools_mod.Tool
 AgentSHAP = agent_shap_mod.AgentSHAP
 
-GEMINI_MODEL_NAME = os.environ.get("GEMINI_MODEL_NAME", "gemini-2.5-flash")
-GEMINI_BASE_URL = os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+MODEL_PROVIDER = os.environ.get("MODEL_PROVIDER", "ollama").lower()
+OLLAMA_MODEL_NAME = os.environ.get("OLLAMA_MODEL_NAME", "qwen2.5:7b-instruct")
+OLLAMA_API_URL = os.environ.get("OLLAMA_API_URL", "http://localhost:11434")
+OPENAI_COMPAT_MODEL_NAME = os.environ.get("OPENAI_COMPAT_MODEL_NAME", os.environ.get("GEMINI_MODEL_NAME", "gemini-2.5-flash"))
+OPENAI_COMPAT_BASE_URL = os.environ.get("OPENAI_COMPAT_BASE_URL", os.environ.get("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"))
+OPENAI_COMPAT_API_KEY = os.environ.get("OPENAI_COMPAT_API_KEY", os.environ.get("GEMINI_API_KEY"))
 
-# Import API-Bank tools
-from apis.calculator import Calculator
-from apis.query_stock import QueryStock
-from apis.wiki import Wiki
-from apis.add_alarm import AddAlarm
-from apis.add_reminder import AddReminder
-from apis.translate import Translate
+def create_model():
+    if MODEL_PROVIDER == "ollama":
+        return OllamaModel(model_name=OLLAMA_MODEL_NAME, api_url=OLLAMA_API_URL)
+    if not OPENAI_COMPAT_API_KEY:
+        raise ValueError("OPENAI_COMPAT_API_KEY is required when MODEL_PROVIDER is not 'ollama'")
+    return OpenAIModel(
+        model_name=OPENAI_COMPAT_MODEL_NAME,
+        api_key=OPENAI_COMPAT_API_KEY,
+        base_url=OPENAI_COMPAT_BASE_URL,
+    )
 
 # Paths
 APIBANK_DIR = EXPERIMENT_DIR / "DAMO-ConvAI" / "api-bank"
 DATABASE_DIR = APIBANK_DIR / "init_database"
 SAMPLES_DIR = APIBANK_DIR / "lv1-lv2-samples" / "level-1-given-desc"
 
+# Import API-Bank tools as package modules so their relative imports work.
+Calculator = importlib.import_module("apis.calculator").Calculator
+QueryStock = importlib.import_module("apis.query_stock").QueryStock
+Wiki = importlib.import_module("apis.wiki").Wiki
+AddAlarm = importlib.import_module("apis.add_alarm").AddAlarm
+AddReminder = importlib.import_module("apis.add_reminder").AddReminder
+Translate = importlib.import_module("apis.translate").Translate
+
 
 def load_database(name):
     db_path = DATABASE_DIR / f"{name}.json"
     if db_path.exists():
-        with open(db_path) as f:
+        with open(db_path, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -72,7 +89,7 @@ def load_prompts_from_benchmark(tool_name, max_prompts=3):
     """Load real prompts from API-Bank benchmark."""
     prompts = []
     for jsonl_file in sorted(SAMPLES_DIR.glob(f"{tool_name}-level-1-*.jsonl")):
-        with open(jsonl_file) as f:
+        with open(jsonl_file, encoding="utf-8") as f:
             for line in f:
                 data = json.loads(line)
                 if data.get("role") == "User":
@@ -154,7 +171,7 @@ def run_cross_domain_experiment(api_key, sampling_ratio=0.5):
 
     Validates that SHAP correctly identifies the relevant tool for each domain.
     """
-    model = OpenAIModel(model_name=GEMINI_MODEL_NAME, api_key=api_key, base_url=GEMINI_BASE_URL)
+    model = create_model()
     vectorizer = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     tools = create_tools()
 
@@ -375,9 +392,9 @@ def save_results_to_csv(results, output_dir):
 
 
 if __name__ == "__main__":
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("Please set GEMINI_API_KEY environment variable")
+    api_key = OPENAI_COMPAT_API_KEY
+    if MODEL_PROVIDER != "ollama" and not api_key:
+        print("Please set OPENAI_COMPAT_API_KEY (or GEMINI_API_KEY) environment variable")
         sys.exit(1)
 
     results_dir = EXPERIMENT_DIR / "results"

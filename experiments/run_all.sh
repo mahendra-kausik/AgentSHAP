@@ -12,7 +12,7 @@ cd "$SCRIPT_DIR"
 
 echo "=========================================="
 echo "Running ALL AgentSHAP Experiments"
-echo "Using Gemini API + HuggingFace embeddings (all-MiniLM-L6-v2)"
+echo "Using provider from .env (default: Ollama qwen2.5:7b-instruct)"
 echo "=========================================="
 
 # Experiment 1: Consistency
