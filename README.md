@@ -1,6 +1,11 @@
 # AgentSHAP
 
-AgentSHAP explains which tools an LLM agent relied on to answer a prompt.
+AgentSHAP attributes an LLM agent's final answer to the tools it called during reasoning.
+Given a prompt, model, and tool set, it estimates per-tool importance scores using Monte Carlo Shapley value estimation, then returns interpretable rankings and analysis artifacts.
+The project includes a reusable Python library, runnable notebooks, and benchmark-style experiments to test consistency, faithfulness, scalability, and robustness to irrelevant tools.
+
+This implementation is based on the paper: 
+**[AgentSHAP: Interpreting LLM Agent Tool Importance with Monte Carlo Shapley Value Estimation](https://arxiv.org/abs/2512.12597)**.
 
 ## Visual Overview
 
